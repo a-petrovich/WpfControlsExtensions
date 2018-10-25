@@ -54,6 +54,7 @@
     <Compile Include="Converters\InverseBooleanConverter.cs" />
     <Compile Include="Converters\MultiConverterBase.cs" />
     <Compile Include="Converters\RadioButtonConverter.cs" />
+    <Compile Include="GridExtensions\DynamicRows.cs" />
     <Compile Include="ItemsControlExtensions\ScrollOnNewItemAdd.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
