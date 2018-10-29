@@ -171,6 +171,9 @@ namespace WpfControlExtensions.ItemsControlExtensions
 
         public void AttachEvents()
         {
+            if (AssociatedObject == null)
+                return;
+
             scrollViewer = GetScrollViewer(AssociatedObject);
             if (scrollViewer != null)
             {
@@ -193,15 +196,17 @@ namespace WpfControlExtensions.ItemsControlExtensions
             {
                 scrollViewer.ScrollChanged -= ScrollViewerOnScrollChanged;
             }
-            if (AssociatedObject is System.Windows.Controls.Primitives.Selector selector)
+            if (AssociatedObject != null)
             {
-                selector.SelectionChanged -= AssociatedObjectOnSelectionChanged;
+                if (AssociatedObject is System.Windows.Controls.Primitives.Selector selector)
+                {
+                    selector.SelectionChanged -= AssociatedObjectOnSelectionChanged;
+                }
+                AssociatedObject.ItemContainerGenerator.ItemsChanged -= ItemContainerGeneratorItemsChanged;
+                AssociatedObject.GotMouseCapture -= AssociatedObject_GotMouseCapture;
+                AssociatedObject.LostMouseCapture -= AssociatedObject_LostMouseCapture;
+                AssociatedObject.PreviewMouseWheel -= AssociatedObject_PreviewMouseWheel;
             }
-            AssociatedObject.ItemContainerGenerator.ItemsChanged -= ItemContainerGeneratorItemsChanged;
-            AssociatedObject.GotMouseCapture -= AssociatedObject_GotMouseCapture;
-            AssociatedObject.LostMouseCapture -= AssociatedObject_LostMouseCapture;
-            AssociatedObject.PreviewMouseWheel -= AssociatedObject_PreviewMouseWheel;
-
             scrollViewer = null;
         }
 

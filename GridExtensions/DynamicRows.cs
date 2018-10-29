@@ -10,17 +10,35 @@ namespace WpfControlExtensions.GridExtensions
 {
     public class DynamicGrid
     {
-        #region SeparatorColor
+        private struct RowColumnDefinition
+        {
+            public RowColumnDefinition(int row, int column)
+            {
+                Row = row;
+                Column = column;
+            }
+
+            public int Row { get; }
+            public int Column { get; }
+        }
+
+        #region Changes user rows and columns definitions for childrens
+
+        private static readonly Dictionary<object, RowColumnDefinition> ChildrenRowDefinitions = new Dictionary<object, RowColumnDefinition>();
+
+        #endregion
+
+        #region SplitterColor
 
         /// <summary>
-        /// Set color of separators
+        /// Set color of splitters
         /// </summary>
-        public static readonly DependencyProperty SeparatorsBackgroundProperty =
+        public static readonly DependencyProperty SplitterBackgroundProperty =
             DependencyProperty.RegisterAttached(
-                "SeparatorsBackground", typeof(System.Windows.Media.Brush), typeof(DynamicGrid),
-                new PropertyMetadata(new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Black), SeparatorsBackgroundChanged));
+                "SplitterBackground", typeof(System.Windows.Media.Brush), typeof(DynamicGrid),
+                new PropertyMetadata(new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Black), SplitterBackgroundChanged));
 
-        private static void SeparatorsBackgroundChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
+        private static void SplitterBackgroundChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
         {
             if (!(obj is Grid) || !(e.NewValue is System.Windows.Media.Brush color))
                 return;
@@ -35,26 +53,26 @@ namespace WpfControlExtensions.GridExtensions
             }
         }
 
-        public static System.Windows.Media.Brush GetSeparatorsBackground(DependencyObject obj)
+        public static System.Windows.Media.Brush GetSplitterBackground(DependencyObject obj)
         {
-            return (System.Windows.Media.Brush)obj.GetValue(SeparatorsBackgroundProperty);
+            return (System.Windows.Media.Brush)obj.GetValue(SplitterBackgroundProperty);
         }
 
-        public static void SetSeparatorsBackground(DependencyObject obj, System.Windows.Media.Brush value)
+        public static void SetSplitterBackground(DependencyObject obj, System.Windows.Media.Brush value)
         {
-            obj.SetValue(SeparatorsBackgroundProperty, value);
+            obj.SetValue(SplitterBackgroundProperty, value);
         }
 
         #endregion
 
-        #region SeparatorWidth
+        #region SplitterWidth
 
-        public static readonly DependencyProperty SeparatorWidthProperty =
+        public static readonly DependencyProperty SplitterWidthProperty =
             DependencyProperty.RegisterAttached(
-                "SeparatorWidth", typeof(int), typeof(DynamicGrid),
-                new PropertyMetadata(2, SeparatorWidthPropertyChanged));
+                "SplitterWidth", typeof(int), typeof(DynamicGrid),
+                new PropertyMetadata(1, SplitterWidthPropertyChanged));
 
-        private static void SeparatorWidthPropertyChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
+        private static void SplitterWidthPropertyChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
         {
             if (!(obj is Grid grid) || !(e.NewValue is int newWidth))
                 return;
@@ -74,29 +92,29 @@ namespace WpfControlExtensions.GridExtensions
             }
         }
 
-        public static int GetSeparatorWidth(DependencyObject obj)
+        public static int GetSplitterWidth(DependencyObject obj)
         {
-            return (int)obj.GetValue(SeparatorWidthProperty);
+            return (int)obj.GetValue(SplitterWidthProperty);
         }
 
-        public static void SetSeparatorWidth(DependencyObject obj, int newWidth)
+        public static void SetSplitterWidth(DependencyObject obj, int newWidth)
         {
-            obj.SetValue(SeparatorWidthProperty, newWidth);
+            obj.SetValue(SplitterWidthProperty, newWidth);
         }
 
         #endregion
 
-        #region DoNeedSeparators
+        #region DoNeedSplitter
 
         /// <summary>
-        /// Set true if you need separators
+        /// Set true if you need splitters
         /// </summary>
-        public static readonly DependencyProperty AddVerticalSeparatorsProperty = 
+        public static readonly DependencyProperty AddVerticalSplittersProperty = 
             DependencyProperty.RegisterAttached(
-                "AddVerticalSeparators", typeof(bool), typeof(DynamicGrid),
-                new PropertyMetadata(true, AddVerticalSeparatorsChanged));
+                "AddVerticalSplitters", typeof(bool), typeof(DynamicGrid),
+                new PropertyMetadata(true, AddVerticalSplittersChanged));
 
-        private static void AddVerticalSeparatorsChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
+        private static void AddVerticalSplittersChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
         {
             if (!(obj is Grid) || !(e.NewValue is bool needToAddSeparators))
                 return;
@@ -119,32 +137,36 @@ namespace WpfControlExtensions.GridExtensions
             splitters.Clear();
             
             grid.ColumnDefinitions.Clear();
-            
-            for (int i = 0; i < GetColumnCount(obj) * 2 - 1; i++)
-                grid.RowDefinitions.Add(new RowDefinition() { Height = GridLength.Auto });
 
-            SetStarColumns(grid, needToAddSeparators, GetSeparatorsBackground(obj), GetHorizontalSeparatorsSpan(obj));
+            var newValue = needToAddSeparators ? GetColumnCount(obj) * 2 - 1 : GetColumnCount(obj);
+
+            for (int i = 0; i < newValue; i++)
+                grid.ColumnDefinitions.Add(new ColumnDefinition() { Width = GridLength.Auto });
+
+            PositionChildrens(obj);
+
+            SetStarColumns(obj, needToAddSeparators, GetSplitterBackground(obj), GetVerticalSplitterSpan(obj));
         }
 
-        public static bool GetAddVerticalSeparators(DependencyObject obj)
+        public static bool GetAddVerticalSplitters(DependencyObject obj)
         {
-            return (bool)obj.GetValue(AddVerticalSeparatorsProperty);
+            return (bool)obj.GetValue(AddVerticalSplittersProperty);
         }
 
-        public static void SetAddVerticalSeparators(DependencyObject obj, bool value)
+        public static void SetAddVerticalSplitters(DependencyObject obj, bool value)
         {
-            obj.SetValue(AddVerticalSeparatorsProperty, value);
+            obj.SetValue(AddVerticalSplittersProperty, value);
         }
 
         /// <summary>
         /// Set true if you need separators
         /// </summary>
-        public static readonly DependencyProperty AddHorizontalSeparatorsProperty =
+        public static readonly DependencyProperty AddHorizontalSplittersProperty =
             DependencyProperty.RegisterAttached(
-                "AddHorizontalSeparators", typeof(bool), typeof(DynamicGrid),
-                new PropertyMetadata(true, AddHorizontalSeparatorsChanged));
+                "AddHorizontalSplitters", typeof(bool), typeof(DynamicGrid),
+                new PropertyMetadata(true, AddHorizontalSplittersChanged));
 
-        private static void AddHorizontalSeparatorsChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
+        private static void AddHorizontalSplittersChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
         {
             if (!(obj is Grid) || !(e.NewValue is bool needToAddSeparators))
                 return;
@@ -168,51 +190,55 @@ namespace WpfControlExtensions.GridExtensions
 
             grid.RowDefinitions.Clear();
 
-            for (int i = 0; i < GetRowCount(obj) * 2 - 1; i++)
+            var newValue = needToAddSeparators ? GetRowCount(obj) * 2 - 1 : GetRowCount(obj);
+
+            for (int i = 0; i < newValue; i++)
                 grid.RowDefinitions.Add(new RowDefinition() { Height = GridLength.Auto });
-            
-            SetStarRows(grid, needToAddSeparators, GetSeparatorsBackground(obj), GetVerticalSeparatorsSpan(obj));
+
+            PositionChildrens(obj);
+
+            SetStarRows(obj, needToAddSeparators, GetSplitterBackground(obj), GetHorizontalSplitterSpan(obj));
         }
 
-        public static bool GetAddHorizontalSeparators(DependencyObject obj)
+        public static bool GetAddHorizontalSplitters(DependencyObject obj)
         {
-            return (bool)obj.GetValue(AddHorizontalSeparatorsProperty);
+            return (bool)obj.GetValue(AddHorizontalSplittersProperty);
         }
 
-        public static void SetAddHorizontalSeparators(DependencyObject obj, bool value)
+        public static void SetAddHorizontalSplitters(DependencyObject obj, bool value)
         {
-            obj.SetValue(AddHorizontalSeparatorsProperty, value);
+            obj.SetValue(AddHorizontalSplittersProperty, value);
         }
 
         #endregion
 
-        #region HorizontalSeparatorsSpan
+        #region HorizontalSplitterSpan
 
         /// <summary>
-        /// Set columnspan forSeparators
+        /// Set columnspan for Splitter
         /// </summary>
-        public static readonly DependencyProperty HorizontalSeparatorsSpanProperty =
+        public static readonly DependencyProperty HorizontalSplitterSpanProperty =
             DependencyProperty.RegisterAttached(
-                "HorizontalSeparatorsSpan", typeof(int), typeof(DynamicGrid),
-                new PropertyMetadata(1, HorizontalSeparatorsSpanChanged));
+                "HorizontalSplitterSpan", typeof(int), typeof(DynamicGrid),
+                new PropertyMetadata(1, HorizontalSplitterSpanChanged));
 
-        private static void HorizontalSeparatorsSpanChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
+        private static void HorizontalSplitterSpanChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
         {
             if (!(obj is Grid) || !(e.NewValue is int colSpan))
                 return;
 
             if (colSpan < 1)
             {
-                SetHorizontalSeparatorsSpan(obj, 1);
+                SetHorizontalSplitterSpan(obj, 1);
                 return;
             }
 
             Grid grid = (Grid)obj;
 
-            SetHorizontalSpan(grid, GetAddHorizontalSeparators(obj) ? colSpan*2-1 : colSpan);
+            SetSplitterSpan(grid, GetAddHorizontalSplitters(obj) ? colSpan*2-1 : colSpan);
         }
 
-        private static void SetHorizontalSpan(Grid grid, int span)
+        private static void SetSplitterSpan(Grid grid, int span)
         {
             foreach (var child in grid.Children)
             {
@@ -223,47 +249,47 @@ namespace WpfControlExtensions.GridExtensions
             }
         }
 
-        public static int GetHorizontalSeparatorsSpan(DependencyObject obj)
+        public static int GetHorizontalSplitterSpan(DependencyObject obj)
         {
-            return (int)obj.GetValue(HorizontalSeparatorsSpanProperty);
+            return (int)obj.GetValue(HorizontalSplitterSpanProperty);
         }
 
-        public static void SetHorizontalSeparatorsSpan(DependencyObject obj, int value)
+        public static void SetHorizontalSplitterSpan(DependencyObject obj, int value)
         {
-            obj.SetValue(HorizontalSeparatorsSpanProperty, value);
+            obj.SetValue(HorizontalSplitterSpanProperty, value);
         }
         #endregion
 
-        #region VerticalSeparatorsSpan
+        #region VerticalSplitterSpan
 
         /// <summary>
-        /// Set true if you need separators
+        /// Set true if you need Splitters
         /// </summary>
-        public static readonly DependencyProperty VerticalSeparatorsSpanProperty =
+        public static readonly DependencyProperty VerticalSplitterSpanProperty =
             DependencyProperty.RegisterAttached(
-                "VerticalSeparatorsSpan", typeof(int), typeof(DynamicGrid),
-                new PropertyMetadata(1, VerticalSeparatorsSpanChanged));
+                "VerticalSplitterSpan", typeof(int), typeof(DynamicGrid),
+                new PropertyMetadata(1, VerticalSplitterSpanChanged));
 
-        private static void VerticalSeparatorsSpanChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
+        private static void VerticalSplitterSpanChanged(DependencyObject obj, DependencyPropertyChangedEventArgs e)
         {
             if (!(obj is Grid grid) || !(e.NewValue is int rowSpan))
                 return;
             if (rowSpan < 1)
             {
-                SetVerticalSeparatorsSpan(obj, 1);
+                SetVerticalSplitterSpan(obj, 1);
                 return;
             }
-            SetVerticalSpan(grid, GetAddVerticalSeparators(obj) ? rowSpan*2-1 : rowSpan);
+            SetVerticalSpan(grid, GetAddVerticalSplitters(obj) ? rowSpan*2-1 : rowSpan);
         }
 
-        public static int GetVerticalSeparatorsSpan(DependencyObject obj)
+        public static int GetVerticalSplitterSpan(DependencyObject obj)
         {
-            return (int)obj.GetValue(VerticalSeparatorsSpanProperty);
+            return (int)obj.GetValue(VerticalSplitterSpanProperty);
         }
 
-        public static void SetVerticalSeparatorsSpan(DependencyObject obj, int value)
+        public static void SetVerticalSplitterSpan(DependencyObject obj, int value)
         {
-            obj.SetValue(VerticalSeparatorsSpanProperty, value);
+            obj.SetValue(VerticalSplitterSpanProperty, value);
         }
 
         private static void SetVerticalSpan(Grid grid, int span)
@@ -324,11 +350,15 @@ namespace WpfControlExtensions.GridExtensions
 
             grid.RowDefinitions.Clear();
 
-            for (int i = 0; i < (int)e.NewValue * 2 - 1; i++)
+            var newCount = GetAddHorizontalSplitters(obj) ? (int)e.NewValue * 2 - 1 : (int)e.NewValue;
+
+            for (int i = 0; i < newCount; i++)
                 grid.RowDefinitions.Add(
                     new RowDefinition() { Height = GridLength.Auto });
 
-            SetStarRows(grid, GetAddHorizontalSeparators(obj), GetSeparatorsBackground(obj), GetHorizontalSeparatorsSpan(obj));
+            PositionChildrens(obj);
+
+            SetStarRows(obj, GetAddHorizontalSplitters(obj), GetSplitterBackground(obj), GetHorizontalSplitterSpan(obj));
         }
 
         #endregion
@@ -380,11 +410,15 @@ namespace WpfControlExtensions.GridExtensions
 
             grid.ColumnDefinitions.Clear();
 
-            for (int i = 0; i < (int)e.NewValue * 2 - 1; i++)
+            var newCount = GetAddVerticalSplitters(obj) ? (int)e.NewValue * 2 - 1 : (int)e.NewValue;
+
+            for (int i = 0; i < newCount; i++)
                 grid.ColumnDefinitions.Add(
                     new ColumnDefinition() { Width = GridLength.Auto });
 
-            SetStarColumns(grid, GetAddVerticalSeparators(obj), GetSeparatorsBackground(obj), GetHorizontalSeparatorsSpan(obj));
+            PositionChildrens(obj);
+
+            SetStarColumns(obj, GetAddVerticalSplitters(obj), GetSplitterBackground(obj), GetVerticalSplitterSpan(obj));
         }
 
         #endregion
@@ -417,11 +451,13 @@ namespace WpfControlExtensions.GridExtensions
             if (!(obj is Grid) || string.IsNullOrEmpty(e.NewValue.ToString()))
                 return;
 
-            SetStarRows((Grid)obj, GetAddHorizontalSeparators(obj), GetSeparatorsBackground(obj), GetHorizontalSeparatorsSpan(obj));
+            SetStarRows(obj, GetAddHorizontalSplitters(obj), GetSplitterBackground(obj), GetHorizontalSplitterSpan(obj));
         }
 
-        private static void SetStarRows(Grid grid, bool needToAddSeparators, System.Windows.Media.Brush brush, int? colSpan)
+        private static void SetStarRows(DependencyObject obj, bool needToAddSeparators, System.Windows.Media.Brush brush, int? colSpan)
         {
+            if (!(obj is Grid grid))
+                return;
             var compare = new StringTrimmedCompare();
             bool all = GetStarRows(grid).Equals("All");
             string[] starRows = GetStarRows(grid).Split(',');
@@ -439,10 +475,10 @@ namespace WpfControlExtensions.GridExtensions
                             Background = brush
                         };
                         gs.SetValue(Grid.RowProperty, i);
-                        gs.SetValue(Grid.ColumnSpanProperty, colSpan.HasValue ? colSpan.Value : grid.ColumnDefinitions.Count);
+                        gs.SetValue(Grid.ColumnSpanProperty, colSpan.HasValue ? colSpan.Value * 2 - 1 : grid.ColumnDefinitions.Count);
                         gs.Background = brush;
                         gs.ResizeBehavior = GridResizeBehavior.PreviousAndNext;
-                        gs.Height = 2;
+                        gs.Height = GetSplitterWidth(obj);
                         gs.HorizontalAlignment = HorizontalAlignment.Stretch;
                         gs.VerticalAlignment = VerticalAlignment.Stretch;
 
@@ -496,11 +532,14 @@ namespace WpfControlExtensions.GridExtensions
             if (!(obj is Grid) || string.IsNullOrEmpty(e.NewValue.ToString()))
                 return;
 
-            SetStarColumns((Grid)obj, GetAddVerticalSeparators(obj), GetSeparatorsBackground(obj), GetHorizontalSeparatorsSpan(obj));
+            SetStarColumns(obj, GetAddVerticalSplitters(obj), GetSplitterBackground(obj), GetVerticalSplitterSpan(obj));
         }
 
-        private static void SetStarColumns(Grid grid, bool needToAddSeparators, System.Windows.Media.Brush brush, int? rowSpan)
+        private static void SetStarColumns(DependencyObject obj, bool needToAddSeparators, System.Windows.Media.Brush brush, int? rowSpan)
         {
+            if (!(obj is Grid grid))
+                return;
+
             var compare = new StringTrimmedCompare();
             bool all = GetStarColumns(grid).Equals("All");
             string[] starColumns = GetStarColumns(grid).Split(',');
@@ -518,9 +557,9 @@ namespace WpfControlExtensions.GridExtensions
                             Background = brush
                         };
                         gs.SetValue(Grid.ColumnProperty, i);
-                        gs.SetValue(Grid.RowSpanProperty, rowSpan.HasValue ? rowSpan.Value : grid.RowDefinitions.Count);
-                        gs.ResizeBehavior = GridResizeBehavior.PreviousAndNext;
-                        gs.Width = 2;
+                        gs.SetValue(Grid.RowSpanProperty, rowSpan.HasValue ? rowSpan.Value * 2 - 1 : grid.RowDefinitions.Count);
+                        gs.ResizeBehavior = GridResizeBehavior.BasedOnAlignment;
+                        gs.Width = GetSplitterWidth(obj);
                         gs.HorizontalAlignment = HorizontalAlignment.Stretch;
                         gs.VerticalAlignment = VerticalAlignment.Stretch;
 
@@ -545,6 +584,36 @@ namespace WpfControlExtensions.GridExtensions
         }
 
         #endregion
+
+        private static void PositionChildrens(DependencyObject obj)
+        {
+            if (!(obj is Grid grid))
+                return;
+
+            bool AddingVertical = GetAddVerticalSplitters(obj);
+            bool AddingHorizontal = GetAddHorizontalSplitters(obj);
+
+            foreach (var child in grid.Children)
+            {
+                if (!(child is DependencyObject dobj))
+                    return;
+
+                if (child is VerticalSplitter || child is HorizontalSplitter)
+                    continue;
+                
+                lock (ChildrenRowDefinitions)
+                {
+                    if (!ChildrenRowDefinitions.ContainsKey(child)) // if it's not in list - add it
+                        ChildrenRowDefinitions[child] = new RowColumnDefinition(
+                            (int)(child as DependencyObject).GetValue(Grid.RowProperty), 
+                            (int)(child as DependencyObject).GetValue(Grid.ColumnProperty));
+                }
+
+                // If we add splitters, we need to move all user controls with row % 2 = 0 to the next grid column
+                dobj.SetValue(Grid.ColumnProperty, AddingVertical ? ChildrenRowDefinitions[child].Column * 2 : ChildrenRowDefinitions[child].Column);
+                dobj.SetValue(Grid.RowProperty, AddingHorizontal ? ChildrenRowDefinitions[child].Row * 2 : ChildrenRowDefinitions[child].Row);
+            }
+        }
 
         class StringTrimmedCompare : EqualityComparer<string>
         {
